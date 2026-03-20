@@ -2,7 +2,7 @@ name: Deploy Telegram Bot
 
 on:
   push:
-    branches: [ main ]
+    branches: [ master, main ]
   workflow_dispatch:
 
 jobs:
@@ -22,8 +22,20 @@ jobs:
       run: |
         pip install -r requirements.txt
 
+    - name: Debug - Verificar secreto
+      run: |
+        if [ -z "${{ secrets.BOT_TOKEN }}" ]; then
+          echo "❌ BOT_TOKEN no está configurado"
+          exit 1
+        else
+          echo "✅ BOT_TOKEN está configurado (longitud: ${#BOT_TOKEN})"
+        fi
+      env:
+        BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+
     - name: Run Telegram Bot
       env:
         BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
       run: |
+        echo "Iniciando bot..."
         python bot.py

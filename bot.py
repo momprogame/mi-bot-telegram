@@ -4,7 +4,7 @@ from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
 # --- Configuración básica ---
-TOKEN = os.environ.get("BOT_TOKEN")
+TOKEN = os.environ.get("8677535685:AAEazDZUBWF6LcNMCYbMLk8rn4T3Q7coRKA")
 if not TOKEN:
     raise ValueError("No se encontró la variable de entorno BOT_TOKEN")
 

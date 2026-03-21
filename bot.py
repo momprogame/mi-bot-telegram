@@ -13,7 +13,8 @@ import re
 import urllib.parse
 from datetime import datetime, timedelta
 from collections import Counter
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand, ParseMode
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand
+from telegram.constants import ParseMode
 from telegram.ext import (
     Application, CommandHandler, MessageHandler, filters, 
     ContextTypes, CallbackQueryHandler, ConversationHandler
@@ -33,15 +34,12 @@ logger = logging.getLogger(__name__)
 # Estados para conversaciones
 NAME, AGE, COLOR, TASK, REMINDER_TEXT, REMINDER_TIME = range(6)
 
-# --- LISTA DE COMANDOS (60+ comandos) ---
+# --- LISTA DE COMANDOS (50+ comandos) ---
 COMMANDS_LIST = [
-    # Básicos
     BotCommand("start", "🚀 Iniciar bot"),
     BotCommand("help", "❓ Ayuda completa"),
     BotCommand("menu", "📋 Menú interactivo"),
     BotCommand("about", "ℹ️ Info del bot"),
-    
-    # Utilidades de texto
     BotCommand("echo", "🔊 Repetir mensaje"),
     BotCommand("reverse", "🔄 Invertir texto"),
     BotCommand("count", "📏 Contar caracteres/palabras"),
@@ -52,8 +50,6 @@ COMMANDS_LIST = [
     BotCommand("base64", "🔐 Codificar en Base64"),
     BotCommand("md5", "🔒 Hash MD5"),
     BotCommand("palindrome", "🔄 Verificar palíndromo"),
-    
-    # Matemáticas
     BotCommand("calc", "🧮 Calculadora"),
     BotCommand("sqrt", "√ Raíz cuadrada"),
     BotCommand("power", "🔢 Potencia"),
@@ -63,69 +59,28 @@ COMMANDS_LIST = [
     BotCommand("prime", "🔢 Verificar número primo"),
     BotCommand("fibonacci", "📊 Secuencia Fibonacci"),
     BotCommand("factorial", "! Factorial"),
-    
-    # Fecha y hora
     BotCommand("time", "🕐 Hora actual"),
     BotCommand("date", "📅 Fecha actual"),
     BotCommand("calendar", "📆 Calendario"),
     BotCommand("age", "🎂 Calcular edad"),
-    BotCommand("countdown", "⏰ Cuenta regresiva"),
-    
-    # Conversión de unidades
-    BotCommand("currency", "💱 Conversión de moneda"),
-    BotCommand("length", "📏 Convertir longitud"),
-    BotCommand("weight", "⚖️ Convertir peso"),
-    BotCommand("temperature", "🌡️ Convertir temperatura"),
-    BotCommand("timezone", "🌍 Zonas horarias"),
-    
-    # Juegos
-    BotCommand("trivia", "🧠 Preguntas trivia"),
-    BotCommand("riddle", "🤔 Acertijos"),
-    BotCommand("hangman", "🎮 Juego del ahorcado"),
-    BotCommand("rps", "✊ Piedra papel tijera"),
-    BotCommand("guess", "🔢 Adivina el número"),
-    BotCommand("wordle", "📝 Wordle"),
-    
-    # Multimedia
     BotCommand("cat", "🐱 Foto de gato"),
     BotCommand("dog", "🐶 Foto de perro"),
     BotCommand("quote", "💬 Cita aleatoria"),
     BotCommand("fact", "📚 Dato curioso"),
     BotCommand("joke", "😂 Chiste aleatorio"),
     BotCommand("meme", "🖼️ Meme"),
-    BotCommand("anime", "🎨 Anime quote"),
     BotCommand("advice", "💡 Consejo aleatorio"),
-    
-    # Utilidades
-    BotCommand("weather", "🌤️ Clima (demo)"),
     BotCommand("ip", "🌐 Tu IP"),
     BotCommand("userinfo", "👤 Info de usuario"),
     BotCommand("chatid", "💬 ID del chat"),
-    BotCommand("qr", "📱 Generar QR"),
     BotCommand("password", "🔑 Generar contraseña"),
     BotCommand("uuid", "🆔 Generar UUID"),
     BotCommand("lorem", "📝 Texto Lorem Ipsum"),
-    
-    # Herramientas
-    BotCommand("urlencode", "🔗 Codificar URL"),
-    BotCommand("urldecode", "🔓 Decodificar URL"),
     BotCommand("color", "🎨 Color aleatorio"),
-    BotCommand("emoji", "😊 Emoji info"),
     BotCommand("bmi", "📊 Calcular IMC"),
-    
-    # Recordatorios y notas
-    BotCommand("note", "📝 Guardar nota"),
-    BotCommand("notes", "📋 Ver notas"),
-    BotCommand("remind", "⏰ Recordatorio"),
-    
-    # Conversaciones
-    BotCommand("survey", "📊 Encuesta interactiva"),
-    BotCommand("todo", "✅ Lista de tareas"),
-    
-    # Social
-    BotCommand("say", "💬 Decir algo"),
-    BotCommand("insult", "😈 Insulto aleatorio"),
-    BotCommand("compliment", "💝 Cumplido aleatorio"),
+    BotCommand("trivia", "🧠 Preguntas trivia"),
+    BotCommand("rps", "✊ Piedra papel tijera"),
+    BotCommand("guess", "🔢 Adivina el número"),
 ]
 
 # --- Funciones auxiliares ---
@@ -165,12 +120,10 @@ def get_random_fact():
         "🐝 Las abejas pueden volar a 25 km/h.",
         "🌊 El océano Pacífico es más grande que la Luna.",
         "🦒 Las jirafas duermen solo 30 minutos al día.",
-        "🐧 Los pingüinos propuestas con piedras.",
+        "🐧 Los pingüinos proponen matrimonio con piedras.",
         "🦋 Las mariposas saborean con las patas.",
         "🐙 Los pulpos tienen tres corazones.",
-        "🦷 Los humanos tienen la misma cantidad de huesos en el cuello que las jirafas (7).",
-        "🍕 La pizza más cara del mundo cuesta $12,000.",
-        "🎵 La canción más reproducida es 'Despacito' con 8 mil millones de vistas."
+        "🦷 Los humanos tienen 7 huesos en el cuello como las jirafas.",
     ]
     return random.choice(facts)
 
@@ -180,7 +133,7 @@ def get_random_joke():
         "¿Qué le dice un techo a otro? Te echo de menos.",
         "¿Cómo se llama el campeón de buceo japonés? Tokofondo.",
         "¿Qué hace una abeja en el gimnasio? ¡Zum-ba!",
-        "¿Por qué los programadores odian la naturaleza? Porque tiene demasiados bugs."
+        "¿Por qué los programadores odian la naturaleza? Porque tiene demasiados bugs.",
     ]
     return random.choice(jokes)
 
@@ -188,7 +141,6 @@ def get_random_meme():
     memes = [
         "https://i.imgur.com/5qR8ZkE.jpg",
         "https://i.imgur.com/3QzQzQz.jpg",
-        "https://i.imgur.com/8q8q8q8.jpg",
     ]
     return random.choice(memes)
 
@@ -205,15 +157,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("📋 Ver comandos", callback_data='menu')],
         [InlineKeyboardButton("🎮 Juegos", callback_data='games')],
-        [InlineKeyboardButton("🔧 Utilidades", callback_data='utils')]
     ]
     await update.message.reply_text(
         f"🎉 *¡Bienvenido {user.first_name}!*\n\n"
         f"Soy un bot con *{len(COMMANDS_LIST)}+ funciones*\n"
-        f"📌 *Escribe / para ver todos los comandos*\n"
-        f"✨ *O selecciona una opción:*",
+        f"📌 *Escribe / para ver todos los comandos*",
         reply_markup=InlineKeyboardMarkup(keyboard),
-        parse_mode='Markdown'
+        parse_mode=ParseMode.MARKDOWN
     )
 
 async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -222,13 +172,11 @@ async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
          InlineKeyboardButton("🧮 Matemáticas", callback_data='math_tools')],
         [InlineKeyboardButton("🎮 Juegos", callback_data='games'),
          InlineKeyboardButton("🖼️ Multimedia", callback_data='media')],
-        [InlineKeyboardButton("🔧 Utilidades", callback_data='utils'),
-         InlineKeyboardButton("📊 Info", callback_data='info_tools')],
     ]
     await update.message.reply_text(
-        "📋 *Menú de Categorías*\n\nSelecciona una:",
+        "📋 *Menú de Categorías*",
         reply_markup=InlineKeyboardMarkup(keyboard),
-        parse_mode='Markdown'
+        parse_mode=ParseMode.MARKDOWN
     )
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -243,52 +191,43 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 /calc, /sqrt, /power, /random, /dice, /coin, /prime, /fibonacci, /factorial
 
 *📅 FECHA/HORA:*
-/time, /date, /calendar, /age, /countdown
-
-*🔄 CONVERSIONES:*
-/currency, /length, /weight, /temperature, /timezone
-
-*🎮 JUEGOS:*
-/trivia, /riddle, /hangman, /rps, /guess, /wordle
+/time, /date, /calendar, /age
 
 *🖼️ MULTIMEDIA:*
 /cat, /dog, /quote, /fact, /joke, /meme, /advice
 
 *🔧 UTILIDADES:*
-/weather, /ip, /userinfo, /chatid, /qr, /password, /uuid, /lorem, /color, /bmi
+/ip, /userinfo, /chatid, /password, /uuid, /lorem, /color, /bmi
 
-*📝 NOTAS:*
-/note, /notes, /remind, /todo
+*🎮 JUEGOS:*
+/trivia, /rps, /guess
 
-✨ *Escribe / para ver todos los comandos en tu Telegram*
+✨ *Escribe / para ver todos los comandos*
 """
-    await update.message.reply_text(help_text, parse_mode='Markdown')
+    await update.message.reply_text(help_text, parse_mode=ParseMode.MARKDOWN)
 
 async def about(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         f"🤖 *Bot Mega Completo*\n\n"
         f"📌 *Versión:* 5.0\n"
         f"⚙️ *Comandos:* {len(COMMANDS_LIST)}\n"
-        f"🎨 *Funciones:* 60+ utilidades\n"
-        f"🐍 *Python:* 3.11\n"
-        f"🔧 *Framework:* python-telegram-bot\n\n"
         f"✨ *Sin API keys necesarias!*\n"
         f"🚀 *¡Pruébame con /menu!*",
-        parse_mode='Markdown'
+        parse_mode=ParseMode.MARKDOWN
     )
 
-# --- Utilidades de texto ---
+# --- Comandos de texto ---
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.args:
         text = ' '.join(context.args)
-        await update.message.reply_text(f"🔊 *Eco:* {text}", parse_mode='Markdown')
+        await update.message.reply_text(f"🔊 *Eco:* {text}", parse_mode=ParseMode.MARKDOWN)
     else:
         await update.message.reply_text("❌ Usa: /echo [texto]")
 
 async def reverse_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.args:
         text = ' '.join(context.args)
-        await update.message.reply_text(f"🔄 *Invertido:* {text[::-1]}", parse_mode='Markdown')
+        await update.message.reply_text(f"🔄 *Invertido:* {text[::-1]}", parse_mode=ParseMode.MARKDOWN)
 
 async def count_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.args:
@@ -298,66 +237,63 @@ async def count_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             f"📏 *Estadísticas:*\n"
             f"Caracteres: {chars}\n"
-            f"Palabras: {words}\n"
-            f"Espacios: {text.count(' ')}",
-            parse_mode='Markdown'
+            f"Palabras: {words}",
+            parse_mode=ParseMode.MARKDOWN
         )
 
 async def uppercase(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.args:
-        await update.message.reply_text(f"🔠 *Mayúsculas:* {' '.join(context.args).upper()}", parse_mode='Markdown')
+        await update.message.reply_text(f"🔠 *Mayúsculas:* {' '.join(context.args).upper()}", parse_mode=ParseMode.MARKDOWN)
 
 async def lowercase(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.args:
-        await update.message.reply_text(f"🔡 *Minúsculas:* {' '.join(context.args).lower()}", parse_mode='Markdown')
+        await update.message.reply_text(f"🔡 *Minúsculas:* {' '.join(context.args).lower()}", parse_mode=ParseMode.MARKDOWN)
 
 async def capitalize_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.args:
-        await update.message.reply_text(f"📝 *Capitalizado:* {' '.join(context.args).title()}", parse_mode='Markdown')
+        await update.message.reply_text(f"📝 *Capitalizado:* {' '.join(context.args).title()}", parse_mode=ParseMode.MARKDOWN)
 
 async def to_binary(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.args:
         text = ' '.join(context.args)
-        binary = ' '.join(format(ord(c), '08b') for c in text)
-        await update.message.reply_text(f"💾 *Binario:* `{binary[:200]}`", parse_mode='Markdown')
+        binary = ' '.join(format(ord(c), '08b') for c in text[:30])
+        await update.message.reply_text(f"💾 *Binario:* `{binary}...`", parse_mode=ParseMode.MARKDOWN)
 
 async def base64_encode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.args:
         text = ' '.join(context.args)
         encoded = base64.b64encode(text.encode()).decode()
-        await update.message.reply_text(f"🔐 *Base64:* `{encoded}`", parse_mode='Markdown')
+        await update.message.reply_text(f"🔐 *Base64:* `{encoded[:100]}`", parse_mode=ParseMode.MARKDOWN)
 
 async def md5_hash(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.args:
         text = ' '.join(context.args)
         hash_md5 = hashlib.md5(text.encode()).hexdigest()
-        await update.message.reply_text(f"🔒 *MD5:* `{hash_md5}`", parse_mode='Markdown')
+        await update.message.reply_text(f"🔒 *MD5:* `{hash_md5}`", parse_mode=ParseMode.MARKDOWN)
 
 async def palindrome(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.args:
-        text = ' '.join(context.args).lower().replace(' ', '')
+        text = ' '.join(context.args).lower().replace(' ', '').replace('á', 'a').replace('é', 'e').replace('í', 'i').replace('ó', 'o').replace('ú', 'u')
         is_palindrome = text == text[::-1]
         result = "✅ *Es palíndromo*" if is_palindrome else "❌ *No es palíndromo*"
-        await update.message.reply_text(result, parse_mode='Markdown')
+        await update.message.reply_text(result, parse_mode=ParseMode.MARKDOWN)
 
 # --- Matemáticas ---
 async def calculator(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.args:
         try:
-            expr = ' '.join(context.args)
-            # Reemplazar símbolos comunes
-            expr = expr.replace('x', '*').replace('^', '**')
+            expr = ' '.join(context.args).replace('x', '*').replace('^', '**')
             result = eval(expr)
-            await update.message.reply_text(f"🧮 *Resultado:* `{result}`", parse_mode='Markdown')
+            await update.message.reply_text(f"🧮 *Resultado:* `{result}`", parse_mode=ParseMode.MARKDOWN)
         except:
-            await update.message.reply_text("❌ Error en la expresión")
+            await update.message.reply_text("❌ Error en la expresión. Usa: /calc 2+2")
 
 async def sqrt_calc(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.args:
         try:
             num = float(context.args[0])
             result = math.sqrt(num)
-            await update.message.reply_text(f"√ *Raíz cuadrada:* `{result}`", parse_mode='Markdown')
+            await update.message.reply_text(f"√ *Raíz cuadrada:* `{result}`", parse_mode=ParseMode.MARKDOWN)
         except:
             await update.message.reply_text("❌ Usa: /sqrt [número]")
 
@@ -367,7 +303,7 @@ async def power_calc(update: Update, context: ContextTypes.DEFAULT_TYPE):
             base = float(context.args[0])
             exp = float(context.args[1])
             result = base ** exp
-            await update.message.reply_text(f"🔢 *Potencia:* `{result}`", parse_mode='Markdown')
+            await update.message.reply_text(f"🔢 *Potencia:* `{result}`", parse_mode=ParseMode.MARKDOWN)
         except:
             await update.message.reply_text("❌ Usa: /power [base] [exponente]")
 
@@ -377,19 +313,19 @@ async def random_number(update: Update, context: ContextTypes.DEFAULT_TYPE):
             min_val = int(context.args[0])
             max_val = int(context.args[1])
             num = random.randint(min_val, max_val)
-            await update.message.reply_text(f"🎲 *Número aleatorio:* `{num}`", parse_mode='Markdown')
+            await update.message.reply_text(f"🎲 *Aleatorio:* `{num}`", parse_mode=ParseMode.MARKDOWN)
         except:
             await update.message.reply_text("❌ Usa: /random [min] [max]")
     else:
         num = random.randint(1, 100)
-        await update.message.reply_text(f"🎲 *Número aleatorio:* `{num}`", parse_mode='Markdown')
+        await update.message.reply_text(f"🎲 *Aleatorio:* `{num}`", parse_mode=ParseMode.MARKDOWN)
 
 async def dice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_dice()
 
 async def coin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     result = random.choice(["Cara 🪙", "Cruz 💰"])
-    await update.message.reply_text(f"🪙 *Resultado:* {result}", parse_mode='Markdown')
+    await update.message.reply_text(f"🪙 *Resultado:* {result}", parse_mode=ParseMode.MARKDOWN)
 
 async def prime_check(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.args:
@@ -400,7 +336,7 @@ async def prime_check(update: Update, context: ContextTypes.DEFAULT_TYPE):
             else:
                 is_prime = all(num % i != 0 for i in range(2, int(math.sqrt(num)) + 1))
             result = "✅ *Es primo*" if is_prime else "❌ *No es primo*"
-            await update.message.reply_text(result, parse_mode='Markdown')
+            await update.message.reply_text(result, parse_mode=ParseMode.MARKDOWN)
         except:
             await update.message.reply_text("❌ Usa: /prime [número]")
 
@@ -408,10 +344,12 @@ async def fibonacci_seq(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.args:
         try:
             n = int(context.args[0])
+            if n > 20:
+                n = 20
             fib = [0, 1]
             for i in range(2, n):
                 fib.append(fib[-1] + fib[-2])
-            await update.message.reply_text(f"📊 *Fibonacci:* `{fib[:n]}`", parse_mode='Markdown')
+            await update.message.reply_text(f"📊 *Fibonacci:* `{fib[:n]}`", parse_mode=ParseMode.MARKDOWN)
         except:
             await update.message.reply_text("❌ Usa: /fibonacci [n]")
 
@@ -419,75 +357,73 @@ async def factorial_calc(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.args:
         try:
             n = int(context.args[0])
+            if n > 20:
+                n = 20
             result = math.factorial(n)
-            await update.message.reply_text(f"! *Factorial:* `{result}`", parse_mode='Markdown')
+            await update.message.reply_text(f"! *Factorial:* `{result}`", parse_mode=ParseMode.MARKDOWN)
         except:
             await update.message.reply_text("❌ Usa: /factorial [número]")
 
 # --- Fecha y hora ---
 async def time_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     now = datetime.now()
-    await update.message.reply_text(f"🕐 *Hora:* `{now.strftime('%H:%M:%S')}`", parse_mode='Markdown')
+    await update.message.reply_text(f"🕐 *Hora:* `{now.strftime('%H:%M:%S')}`", parse_mode=ParseMode.MARKDOWN)
 
 async def date_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     now = datetime.now()
-    await update.message.reply_text(f"📅 *Fecha:* `{now.strftime('%d/%m/%Y')}`", parse_mode='Markdown')
+    await update.message.reply_text(f"📅 *Fecha:* `{now.strftime('%d/%m/%Y')}`", parse_mode=ParseMode.MARKDOWN)
 
 async def calendar_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     now = datetime.now()
-    cal = f"📆 *{now.strftime('%B %Y')}*\n\n"
-    cal += "Lun Mar Mié Jue Vie Sáb Dom\n"
-    # Simplificado - muestra el mes actual
-    await update.message.reply_text(cal, parse_mode='Markdown')
+    await update.message.reply_text(f"📆 *{now.strftime('%B %Y')}*", parse_mode=ParseMode.MARKDOWN)
 
 async def age_calc(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.args:
         try:
             birth = datetime.strptime(context.args[0], '%d/%m/%Y')
-            age = datetime.now() - birth
-            years = age.days // 365
-            await update.message.reply_text(f"🎂 *Edad:* `{years} años`", parse_mode='Markdown')
+            years = (datetime.now() - birth).days // 365
+            await update.message.reply_text(f"🎂 *Edad:* `{years} años`", parse_mode=ParseMode.MARKDOWN)
         except:
             await update.message.reply_text("❌ Usa: /age [dd/mm/yyyy]")
 
-# --- Multimedia con APIs públicas ---
+# --- Multimedia ---
 async def cat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await send_typing(update, context)
     url = get_random_cat()
-    await update.message.reply_photo(url, caption="🐱 *¡Mira este gatito!*", parse_mode='Markdown')
+    await update.message.reply_photo(url, caption="🐱 *¡Mira este gatito!*", parse_mode=ParseMode.MARKDOWN)
 
 async def dog(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await send_typing(update, context)
     url = get_random_dog()
-    await update.message.reply_photo(url, caption="🐶 *¡Qué perrito tan lindo!*", parse_mode='Markdown')
+    await update.message.reply_photo(url, caption="🐶 *¡Qué perrito tan lindo!*", parse_mode=ParseMode.MARKDOWN)
 
 async def quote(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await send_typing(update, context)
     quote_text = get_random_quote()
-    await update.message.reply_text(quote_text, parse_mode='Markdown')
+    await update.message.reply_text(quote_text, parse_mode=ParseMode.MARKDOWN)
 
 async def fact(update: Update, context: ContextTypes.DEFAULT_TYPE):
     fact_text = get_random_fact()
-    await update.message.reply_text(f"📚 *Dato curioso:*\n{fact_text}", parse_mode='Markdown')
+    await update.message.reply_text(f"📚 *Dato curioso:*\n{fact_text}", parse_mode=ParseMode.MARKDOWN)
 
 async def joke(update: Update, context: ContextTypes.DEFAULT_TYPE):
     joke_text = get_random_joke()
-    await update.message.reply_text(f"😂 *Chiste:*\n{joke_text}", parse_mode='Markdown')
+    await update.message.reply_text(f"😂 *Chiste:*\n{joke_text}", parse_mode=ParseMode.MARKDOWN)
 
 async def meme(update: Update, context: ContextTypes.DEFAULT_TYPE):
     url = get_random_meme()
-    await update.message.reply_photo(url, caption="🖼️ *Meme del día*", parse_mode='Markdown')
+    await update.message.reply_photo(url, caption="🖼️ *Meme*", parse_mode=ParseMode.MARKDOWN)
 
 async def advice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     advice_text = get_random_advice()
-    await update.message.reply_text(f"💡 *Consejo:*\n{advice_text}", parse_mode='Markdown')
+    await update.message.reply_text(f"💡 *Consejo:*\n{advice_text}", parse_mode=ParseMode.MARKDOWN)
 
 # --- Utilidades ---
 async def get_ip(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         response = requests.get("https://api.ipify.org?format=json", timeout=5)
         ip = response.json()["ip"]
-        await update.message.reply_text(f"🌐 *Tu IP:* `{ip}`", parse_mode='Markdown')
+        await update.message.reply_text(f"🌐 *Tu IP:* `{ip}`", parse_mode=ParseMode.MARKDOWN)
     except:
         await update.message.reply_text("❌ No se pudo obtener la IP")
 
@@ -500,51 +436,57 @@ async def user_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"👥 *Username:* @{user.username or 'No tiene'}\n"
         f"🔗 *Link:* [Perfil](tg://user?id={user.id})"
     )
-    await update.message.reply_text(info, parse_mode='Markdown')
+    await update.message.reply_text(info, parse_mode=ParseMode.MARKDOWN)
 
 async def chat_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat = update.effective_chat
-    await update.message.reply_text(f"💬 *Chat ID:* `{chat.id}`", parse_mode='Markdown')
+    await update.message.reply_text(f"💬 *Chat ID:* `{chat.id}`", parse_mode=ParseMode.MARKDOWN)
 
 async def password_gen(update: Update, context: ContextTypes.DEFAULT_TYPE):
     length = 12
-    if context.args:
-        try:
-            length = int(context.args[0])
-            length = min(length, 50)
-        except:
-            pass
+    if context.args and context.args[0].isdigit():
+        length = min(int(context.args[0]), 30)
     chars = string.ascii_letters + string.digits + "!@#$%^&*"
     password = ''.join(random.choice(chars) for _ in range(length))
-    await update.message.reply_text(f"🔑 *Contraseña generada:* `{password}`", parse_mode='Markdown')
+    await update.message.reply_text(f"🔑 *Contraseña:* `{password}`", parse_mode=ParseMode.MARKDOWN)
 
 async def uuid_gen(update: Update, context: ContextTypes.DEFAULT_TYPE):
     import uuid
     uid = uuid.uuid4()
-    await update.message.reply_text(f"🆔 *UUID:* `{uid}`", parse_mode='Markdown')
+    await update.message.reply_text(f"🆔 *UUID:* `{uid}`", parse_mode=ParseMode.MARKDOWN)
 
 async def lorem_gen(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lorem = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris."
-    await update.message.reply_text(f"📝 *Lorem Ipsum:*\n{lorem}", parse_mode='Markdown')
+    lorem = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+    await update.message.reply_text(f"📝 *Lorem Ipsum:*\n{lorem}", parse_mode=ParseMode.MARKDOWN)
 
 async def color_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     colors = ["Rojo 🔴", "Azul 🔵", "Verde 🟢", "Amarillo 🟡", "Morado 🟣", "Naranja 🟠"]
-    await update.message.reply_text(f"🎨 *Color aleatorio:* {random.choice(colors)}", parse_mode='Markdown')
+    await update.message.reply_text(f"🎨 *Color aleatorio:* {random.choice(colors)}", parse_mode=ParseMode.MARKDOWN)
 
 async def bmi_calc(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if len(context.args) == 2:
         try:
             weight = float(context.args[0])
-            height = float(context.args[1]) / 100
-            bmi = weight / (height ** 2)
-            category = "Bajo peso" if bmi < 18.5 else "Normal" if bmi < 25 else "Sobrepeso" if bmi < 30 else "Obesidad"
+            height_cm = float(context.args[1])
+            height_m = height_cm / 100
+            bmi = weight / (height_m ** 2)
+            if bmi < 18.5:
+                category = "Bajo peso ⚠️"
+            elif bmi < 25:
+                category = "Normal ✅"
+            elif bmi < 30:
+                category = "Sobrepeso ⚠️"
+            else:
+                category = "Obesidad ❌"
             await update.message.reply_text(
-                f"📊 *IMC:* `{bmi:.2f}`\n"
+                f"📊 *IMC:* `{bmi:.1f}`\n"
                 f"📌 *Categoría:* {category}",
-                parse_mode='Markdown'
+                parse_mode=ParseMode.MARKDOWN
             )
         except:
             await update.message.reply_text("❌ Usa: /bmi [peso_kg] [altura_cm]")
+    else:
+        await update.message.reply_text("❌ Usa: /bmi [peso_kg] [altura_cm]")
 
 # --- Juegos ---
 async def trivia(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -553,10 +495,12 @@ async def trivia(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ("¿Qué planeta es conocido como el planeta rojo?", "Marte"),
         ("¿Cuántos días tiene un año bisiesto?", "366"),
         ("¿Quién pintó la Mona Lisa?", "Leonardo da Vinci"),
+        ("¿Cuál es el animal más rápido del mundo?", "Chita"),
+        ("¿Cuántos huesos tiene el cuerpo humano?", "206"),
     ]
     q, a = random.choice(questions)
     context.user_data['trivia_answer'] = a.lower()
-    await update.message.reply_text(f"🧠 *Trivia:* {q}\n\nResponde con la respuesta!", parse_mode='Markdown')
+    await update.message.reply_text(f"🧠 *Trivia:* {q}\n\nResponde con la respuesta!", parse_mode=ParseMode.MARKDOWN)
 
 async def rps_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [[
@@ -567,21 +511,17 @@ async def rps_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "🎮 *Piedra, Papel o Tijera*\n\n¡Elige!",
         reply_markup=InlineKeyboardMarkup(keyboard),
-        parse_mode='Markdown'
+        parse_mode=ParseMode.MARKDOWN
     )
 
 async def guess_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if 'secret' not in context.user_data:
-        context.user_data['secret'] = random.randint(1, 100)
-        await update.message.reply_text(
-            "🎯 *Adivina el número*\n\n"
-            "He pensado un número entre 1 y 100.\n"
-            "Envía un número para adivinarlo!",
-            parse_mode='Markdown'
-        )
-    else:
-        context.user_data['secret'] = random.randint(1, 100)
-        await update.message.reply_text("🎯 ¡Nuevo número! Adivina.")
+    context.user_data['secret'] = random.randint(1, 100)
+    await update.message.reply_text(
+        "🎯 *Adivina el número*\n\n"
+        "He pensado un número entre 1 y 100.\n"
+        "Envía un número para adivinarlo!",
+        parse_mode=ParseMode.MARKDOWN
+    )
 
 # --- Callbacks ---
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -604,23 +544,21 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         await query.edit_message_text(
             f"🎮 *RPS*\nTú: {options[move]}\nBot: {options[bot_move]}\n\n*Resultado:* {result}",
-            parse_mode='Markdown'
+            parse_mode=ParseMode.MARKDOWN
         )
         return
     
     categories = {
-        'text_tools': "📝 *Texto:* /echo, /reverse, /count, /uppercase, /lowercase, /capitalize, /binary, /base64, /md5, /palindrome",
-        'math_tools': "🧮 *Matemáticas:* /calc, /sqrt, /power, /random, /dice, /coin, /prime, /fibonacci, /factorial",
-        'games': "🎮 *Juegos:* /trivia, /riddle, /rps, /guess, /dice, /coin",
-        'media': "🖼️ *Multimedia:* /cat, /dog, /quote, /fact, /joke, /meme, /advice",
-        'utils': "🔧 *Utilidades:* /ip, /userinfo, /chatid, /password, /uuid, /lorem, /color, /bmi",
-        'info_tools': "ℹ️ *Info:* /time, /date, /age, /weather"
+        'text_tools': "📝 *Comandos de Texto:*\n/echo, /reverse, /count, /uppercase, /lowercase, /capitalize, /binary, /base64, /md5, /palindrome",
+        'math_tools': "🧮 *Comandos Matemáticos:*\n/calc, /sqrt, /power, /random, /dice, /coin, /prime, /fibonacci, /factorial",
+        'games': "🎮 *Juegos:*\n/trivia, /rps, /guess",
+        'media': "🖼️ *Multimedia:*\n/cat, /dog, /quote, /fact, /joke, /meme, /advice",
     }
     
     if query.data in categories:
         await query.edit_message_text(
-            f"{categories[query.data]}\n\n✨ *Escribe / para ver todos*",
-            parse_mode='Markdown'
+            f"{categories[query.data]}\n\n✨ *Escribe / para ver todos los comandos*",
+            parse_mode=ParseMode.MARKDOWN
         )
     elif query.data == 'menu':
         keyboard = [
@@ -628,24 +566,27 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
              InlineKeyboardButton("🧮 Matemáticas", callback_data='math_tools')],
             [InlineKeyboardButton("🎮 Juegos", callback_data='games'),
              InlineKeyboardButton("🖼️ Multimedia", callback_data='media')],
-            [InlineKeyboardButton("🔧 Utilidades", callback_data='utils'),
-             InlineKeyboardButton("📊 Info", callback_data='info_tools')],
         ]
         await query.edit_message_text(
             "📋 *Categorías:*",
             reply_markup=InlineKeyboardMarkup(keyboard),
-            parse_mode='Markdown'
+            parse_mode=ParseMode.MARKDOWN
+        )
+    elif query.data == 'games':
+        await query.edit_message_text(
+            "🎮 *Juegos:*\n/trivia, /rps, /guess",
+            parse_mode=ParseMode.MARKDOWN
         )
 
-# --- Manejo de respuestas de juegos ---
+# --- Manejo de respuestas ---
 async def handle_trivia_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if 'trivia_answer' in context.user_data:
         answer = update.message.text.lower().strip()
         correct = context.user_data['trivia_answer']
         if answer == correct:
-            await update.message.reply_text("✅ *¡Correcto!*", parse_mode='Markdown')
+            await update.message.reply_text("✅ *¡Correcto!*", parse_mode=ParseMode.MARKDOWN)
         else:
-            await update.message.reply_text(f"❌ *Incorrecto. Era: {correct}*", parse_mode='Markdown')
+            await update.message.reply_text(f"❌ *Incorrecto. Era: {correct}*", parse_mode=ParseMode.MARKDOWN)
         del context.user_data['trivia_answer']
 
 async def handle_guess(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -658,7 +599,7 @@ async def handle_guess(update: Update, context: ContextTypes.DEFAULT_TYPE):
             elif guess > secret:
                 await update.message.reply_text("📉 ¡Más bajo!")
             else:
-                await update.message.reply_text("🎉 *¡Correcto! ¡Ganaste!* 🎉", parse_mode='Markdown')
+                await update.message.reply_text("🎉 *¡Correcto! ¡Ganaste!* 🎉", parse_mode=ParseMode.MARKDOWN)
                 del context.user_data['secret']
         except ValueError:
             pass
@@ -676,7 +617,7 @@ def main():
     app.add_handler(CommandHandler("about", about))
     app.add_handler(CommandHandler("menu", menu))
     
-    # Texto
+    # Comandos de texto
     app.add_handler(CommandHandler("echo", echo))
     app.add_handler(CommandHandler("reverse", reverse_text))
     app.add_handler(CommandHandler("count", count_text))
@@ -688,7 +629,7 @@ def main():
     app.add_handler(CommandHandler("md5", md5_hash))
     app.add_handler(CommandHandler("palindrome", palindrome))
     
-    # Matemáticas
+    # Comandos matemáticos
     app.add_handler(CommandHandler("calc", calculator))
     app.add_handler(CommandHandler("sqrt", sqrt_calc))
     app.add_handler(CommandHandler("power", power_calc))
@@ -699,13 +640,13 @@ def main():
     app.add_handler(CommandHandler("fibonacci", fibonacci_seq))
     app.add_handler(CommandHandler("factorial", factorial_calc))
     
-    # Fecha/Hora
+    # Comandos fecha/hora
     app.add_handler(CommandHandler("time", time_cmd))
     app.add_handler(CommandHandler("date", date_cmd))
     app.add_handler(CommandHandler("calendar", calendar_cmd))
     app.add_handler(CommandHandler("age", age_calc))
     
-    # Multimedia
+    # Comandos multimedia
     app.add_handler(CommandHandler("cat", cat))
     app.add_handler(CommandHandler("dog", dog))
     app.add_handler(CommandHandler("quote", quote))
@@ -714,7 +655,7 @@ def main():
     app.add_handler(CommandHandler("meme", meme))
     app.add_handler(CommandHandler("advice", advice))
     
-    # Utilidades
+    # Comandos utilidades
     app.add_handler(CommandHandler("ip", get_ip))
     app.add_handler(CommandHandler("userinfo", user_info))
     app.add_handler(CommandHandler("chatid", chat_id))
@@ -724,7 +665,7 @@ def main():
     app.add_handler(CommandHandler("color", color_info))
     app.add_handler(CommandHandler("bmi", bmi_calc))
     
-    # Juegos
+    # Comandos juegos
     app.add_handler(CommandHandler("trivia", trivia))
     app.add_handler(CommandHandler("rps", rps_game))
     app.add_handler(CommandHandler("guess", guess_game))

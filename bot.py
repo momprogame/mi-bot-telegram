@@ -1,6 +1,9 @@
 import os
 import logging
 import asyncio
+import time
+import threading
+import random
 from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand
 from telegram.ext import (
@@ -23,7 +26,7 @@ logger = logging.getLogger(__name__)
 # Estados para conversaciones
 NAME, AGE, COLOR = range(3)
 
-# --- LISTA COMPLETA DE COMANDOS ---
+# --- LISTA COMPLETA DE COMANDOS (25 comandos) ---
 COMMANDS_LIST = [
     BotCommand("start", "🚀 Iniciar el bot"),
     BotCommand("help", "❓ Mostrar ayuda"),
@@ -52,6 +55,23 @@ COMMANDS_LIST = [
     BotCommand("calc", "🧮 Calculadora simple"),
     BotCommand("random", "🎲 Número aleatorio"),
 ]
+
+# --- FUNCIÓN PARA KEEP-ALIVE ---
+def start_keep_alive():
+    """Mantiene el bot activo con pings periódicos"""
+    def keep_alive():
+        import requests
+        while True:
+            try:
+                requests.get('https://api.telegram.org', timeout=5)
+                logger.info("🔄 Keep-alive ping enviado")
+            except Exception as e:
+                logger.warning(f"⚠️ Ping falló: {e}")
+            time.sleep(300)  # 5 minutos
+    
+    thread = threading.Thread(target=keep_alive, daemon=True)
+    thread.start()
+    logger.info("✅ Keep-alive thread iniciado")
 
 # --- FUNCIÓN PARA REGISTRAR COMANDOS ---
 async def register_commands(application: Application):
@@ -124,10 +144,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 /echo, /uppercase, /lowercase, /length, /reverse, /calc, /random
 
 *ℹ️ INFORMACIÓN:*
-/id, /chatid, /time, /date
-
-*🌤️ EXTERNAS:*
-/weather
+/id, /chatid, /time, /date, /weather
 
 *📝 FORMULARIOS:*
 /start_form
@@ -199,7 +216,6 @@ async def quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def guess_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    import random
     if 'secret_number' not in context.user_data:
         context.user_data['secret_number'] = random.randint(1, 100)
         await update.message.reply_text(
@@ -245,21 +261,29 @@ async def uppercase(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.args:
         text = ' '.join(context.args)
         await update.message.reply_text(f"🔠 *Mayúsculas:* {text.upper()}", parse_mode='Markdown')
+    else:
+        await update.message.reply_text("❌ Usa: /uppercase [texto]")
 
 async def lowercase(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.args:
         text = ' '.join(context.args)
         await update.message.reply_text(f"🔡 *Minúsculas:* {text.lower()}", parse_mode='Markdown')
+    else:
+        await update.message.reply_text("❌ Usa: /lowercase [texto]")
 
 async def length_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.args:
         text = ' '.join(context.args)
         await update.message.reply_text(f"📏 *Longitud:* {len(text)}", parse_mode='Markdown')
+    else:
+        await update.message.reply_text("❌ Usa: /length [texto]")
 
 async def reverse_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.args:
         text = ' '.join(context.args)
         await update.message.reply_text(f"🔄 *Invertido:* {text[::-1]}", parse_mode='Markdown')
+    else:
+        await update.message.reply_text("❌ Usa: /reverse [texto]")
 
 async def calculator(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.args:
@@ -268,7 +292,20 @@ async def calculator(update: Update, context: ContextTypes.DEFAULT_TYPE):
             result = eval(expression)
             await update.message.reply_text(f"🧮 *Resultado:* {result}", parse_mode='Markdown')
         except:
-            await update.message.reply_text("❌ Error en la expresión")
+            await update.message.reply_text("❌ Error en la expresión. Usa: /calc 2+2")
+    else:
+        await update.message.reply_text("❌ Usa: /calc [expresión]")
+
+async def random_number(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if len(context.args) == 2:
+        try:
+            min_val, max_val = map(int, context.args[:2])
+            num = random.randint(min_val, max_val)
+            await update.message.reply_text(f"🎲 *Aleatorio:* {num}", parse_mode='Markdown')
+        except:
+            await update.message.reply_text("❌ Usa: /random [min] [max]")
+    else:
+        await update.message.reply_text(f"🎲 *Aleatorio:* {random.randint(1, 100)}", parse_mode='Markdown')
 
 # --- Información ---
 async def get_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -290,21 +327,15 @@ async def date_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def weather_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.args:
         city = ' '.join(context.args)
-        await update.message.reply_text(f"🌤️ *Clima en {city}:* 22°C ☁️", parse_mode='Markdown')
+        await update.message.reply_text(
+            f"🌤️ *Clima en {city}:*\n"
+            f"🌡️ Temperatura: 22°C\n"
+            f"💧 Humedad: 65%\n"
+            f"☁️ Estado: Parcialmente nublado",
+            parse_mode='Markdown'
+        )
     else:
         await update.message.reply_text("❌ Usa: /weather [ciudad]")
-
-async def random_number(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    import random
-    if len(context.args) == 2:
-        try:
-            min_val, max_val = map(int, context.args[:2])
-            num = random.randint(min_val, max_val)
-            await update.message.reply_text(f"🎲 *Aleatorio:* {num}", parse_mode='Markdown')
-        except:
-            await update.message.reply_text("❌ Usa: /random [min] [max]")
-    else:
-        await update.message.reply_text(f"🎲 *Aleatorio:* {random.randint(1, 100)}", parse_mode='Markdown')
 
 # --- Formulario ---
 async def start_form(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -342,7 +373,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     
     if query.data.startswith('rps_'):
-        import random
         move = query.data.split('_')[1]
         options = {'piedra': '✊', 'papel': '✋', 'tijera': '✌️'}
         bot_move = random.choice(list(options.keys()))
@@ -417,10 +447,13 @@ async def handle_guess(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # --- MAIN ---
 def main():
+    # Iniciar keep-alive
+    start_keep_alive()
+    
     # Crear aplicación
     application = Application.builder().token(TOKEN).build()
     
-    # Registrar comandos manualmente
+    # Registrar comandos
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     loop.run_until_complete(register_commands(application))
@@ -483,7 +516,7 @@ def main():
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
     
     # Iniciar bot
-    logger.info("🚀 Bot iniciando...")
+    logger.info("🚀 Bot iniciando con keep-alive activo...")
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":

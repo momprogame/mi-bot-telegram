@@ -4,11 +4,15 @@ on:
   push:
     branches: [ master, main ]
   workflow_dispatch:
+  schedule:
+    # Ejecutar cada 4 horas para mantenerlo activo (opcional)
+    - cron: '0 */4 * * *'
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-
+    timeout-minutes: 360  # 6 horas máximo (GitHub permite hasta 6 horas)
+    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -21,6 +25,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install -r requirements.txt
+        pip install requests  # Para mantener conexión activa
 
     - name: Debug - Verificar secreto
       run: |
@@ -33,9 +38,85 @@ jobs:
       env:
         BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
 
-    - name: Run Telegram Bot
+    - name: Keep Alive Script
+      run: |
+        cat > keep_alive.py << 'EOF'
+        import os
+        import time
+        import threading
+        import requests
+        from datetime import datetime
+        
+        def keep_alive():
+            """Mantiene el bot activo enviando pings periódicos"""
+            while True:
+                try:
+                    # Ping a un servicio público cada 5 minutos
+                    requests.get('https://api.telegram.org', timeout=5)
+                    print(f"[{datetime.now().strftime('%H:%M:%S')}] 🔄 Keep-alive ping enviado")
+                except Exception as e:
+                    print(f"[{datetime.now().strftime('%H:%M:%S')}] ⚠️ Ping falló: {e}")
+                time.sleep(300)  # 5 minutos
+        
+        # Iniciar thread de keep-alive
+        if os.environ.get('ENABLE_KEEP_ALIVE', 'true').lower() == 'true':
+            keep_alive_thread = threading.Thread(target=keep_alive, daemon=True)
+            keep_alive_thread.start()
+            print("✅ Keep-alive thread iniciado")
+        else:
+            print("ℹ️ Keep-alive deshabilitado")
+        EOF
+
+    - name: Run Telegram Bot with Auto-Restart
       env:
         BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+        ENABLE_KEEP_ALIVE: "true"
       run: |
-        echo "Iniciando bot..."
-        python bot.py
+        echo "🚀 Iniciando bot con auto-reinicio..."
+        echo "📅 Hora de inicio: $(date)"
+        
+        # Script de auto-reinicio
+        cat > run_bot.sh << 'SCRIPT'
+        #!/bin/bash
+        COUNTER=0
+        while true; do
+          COUNTER=$((COUNTER + 1))
+          echo "🔄 Ejecución #$COUNTER - $(date)"
+          echo "✅ BOT_TOKEN está configurado"
+          
+          # Ejecutar bot con keep-alive
+          python keep_alive.py &
+          python bot.py
+          
+          EXIT_CODE=$?
+          echo "⚠️ Bot terminó con código: $EXIT_CODE - $(date)"
+          
+          if [ $EXIT_CODE -eq 0 ]; then
+            echo "✅ Bot finalizó correctamente. Reiniciando en 10 segundos..."
+            sleep 10
+          else
+            echo "❌ Bot falló. Reiniciando en 30 segundos..."
+            sleep 30
+          fi
+        done
+        SCRIPT
+        
+        chmod +x run_bot.sh
+        ./run_bot.sh
+
+    - name: Upload logs on failure
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: bot-logs
+        path: |
+          *.log
+          *.txt
+        retention-days: 7
+
+    - name: Notify on failure
+      if: failure()
+      run: |
+        echo "⚠️ El bot ha fallado. Revisa los logs para más detalles."
+        echo "📝 Puedes ejecutar manualmente el workflow en:"
+        echo "https://github.com/${{ github.repository }}/actions"
